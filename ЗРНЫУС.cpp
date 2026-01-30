@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <fstream>
 
 #pragma comment(lib, "opengl32.lib")
 
@@ -33,18 +34,21 @@ std::string levelMap[MAP_HEIGHT] = {
     "####################"
 };
 
+// Вычисляем размер тайла так, чтобы вся ширина MAP_WIDTH входила в 2 * aspect
 float GetTileSize() {
     float aspect = (float)windowWidth / (float)windowHeight;
     return (aspect * 2.0f) / (float)MAP_WIDTH;
 }
-
+struct RGB {float r, g, b;};
 struct Vector2 { float x, y; };
 struct Object {
     Vector2 pos;
-    float vx, vy, radius, angle, r, g, b;
+    float vx, vy, radius, angle;
+    RGB col;
 };
 
 class Player {
+    int jumpCnt = 1;
 public:
     void Movement(Object& pl) {
         if (GetAsyncKeyState('Q') & 0x8000) pl.angle += ROT_SPEED;
@@ -71,7 +75,8 @@ public:
 
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
-
+                if (levelMap[y][x] == '#') {
+                    // Центрирование карты: -aspect + смещение. 
                     // Смещение по Y начинается сверху (1.0) вниз.
                     float tx = -aspect + x * tileSize + tileSize / 2.0f;
                     float ty = 1.0f - y * tileSize - tileSize / 2.0f;
@@ -101,11 +106,11 @@ public:
 Object playerObj;
 Player playerLogic;
 
-void DrawSquare(float x, float y, float size, float angle, float r, float g, float b) {
+void DrawSquare(float x, float y, float size, float angle, RGB rgb) {
     glPushMatrix();
     glTranslatef(x, y, 0);
     glRotatef(angle * 57.2958f, 0, 0, 1);
-    glColor3f(r, g, b);
+    glColor3f(rgb.r, rgb.g, rgb.b);
     glBegin(GL_QUADS);
     glVertex2f(-size, -size); glVertex2f(size, -size);
     glVertex2f(size, size); glVertex2f(-size, size);
@@ -121,7 +126,7 @@ void DrawMap() {
             if (levelMap[y][x] == '#') {
                 float tx = -aspect + x * tileSize + tileSize / 2.0f;
                 float ty = 1.0f - y * tileSize - tileSize / 2.0f;
-                DrawSquare(tx, ty, tileSize / 2.0f, 0, 0.7f, 0.8f, 0.6f);
+                DrawSquare(tx, ty, tileSize / 2.0f, 0, { 0.2f, 0.8f, 0.6f });
             }
         }
     }
@@ -178,7 +183,7 @@ int APIENTRY wWinMain(HINSTANCE hI, HINSTANCE hP, LPWSTR lp, int nS) {
             glOrtho(-aspect, aspect, -1, 1, -1, 1);
 
             DrawMap();
-            DrawSquare(playerObj.pos.x, playerObj.pos.y, playerObj.radius, playerObj.angle, playerObj.r, playerObj.g, playerObj.b);
+            DrawSquare(playerObj.pos.x, playerObj.pos.y, playerObj.radius, playerObj.angle, { playerObj.col.r, playerObj.col.g, playerObj.col.b });
 
             SwapBuffers(hDC);
             Sleep(1);
